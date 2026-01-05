@@ -1,82 +1,188 @@
-// import React, { useEffect, useState } from "react";
-// import { createClient } from "@supabase/supabase-js";
+// // ============================================================
 
-// const supabase = createClient(
-//   import.meta.env.VITE_SUPABASE_URL,
-//   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
-// );
+// import "./App.css";
+// import { supabase } from "./config/supabase";
+// import { useEffect, useState, useRef } from "react";
 
 // function App() {
-//   const [message, setMessage] = useState("");
+//   const [session, setSession] = useState(null);
 //   const [messages, setMessages] = useState([]);
+//   const [messageInput, setMessageInput] = useState("");
+//   const messagesEndRef = useRef(null);
+//   console.log(messageInput);
 
-//   // Fetch messages
-//   const getFetch = async () => {
-//     const { data, error } = await supabase
-//       .from("realtime")
-//       .select("*")
-//       .order("id", { ascending: true });
+//   useEffect(() => {
+//     supabase.auth
+//       .getSession()
+//       .then(({ data: { session } }) => setSession(session));
 
+//     const {
+//       data: { subscription },
+//     } = supabase.auth.onAuthStateChange((_event, session) => {
+//       setSession(session);
+//     });
+
+//     return () => subscription.unsubscribe();
+//   }, []);
+
+//   const signInWithGoogle = async () => {
+//     const { data, error } = await supabase.auth.signInWithOAuth({
+//       provider: "google",
+//     });
 //     if (error) {
 //       console.log(error);
-//     } else {
-//       setMessages(data);
 //     }
 //   };
 
-//   // Insert message
-//   const insertData = async () => {
-//     if (!message.trim()) return;
-
-//     const { error } = await supabase
-//       .from("realtime")
-//       .insert({ tittle: message });
-
+//   const signOut = async () => {
+//     const { error } = await supabase.auth.signOut();
 //     if (error) {
 //       console.log(error);
-//     } else {
-//       setMessage("");
-//       getFetch();
 //     }
 //   };
 
 //   useEffect(() => {
-//     getFetch();
+//     supabase
+//       .from("messages")
+//       .select("*")
+//       .order("created_at")
+//       .then(({ data }) => setMessages(data));
+
+//     const channel = supabase
+//       .channel("chat")
+//       .on(
+//         "postgres_changes",
+//         { event: "INSERT", schema: "public", table: "messages" },
+//         (payload) => {
+//           setMessages((prev) => [...prev, payload.new]);
+//         }
+//       )
+//       .subscribe();
+
+//     return () => supabase.removeChannel(channel);
 //   }, []);
 
-//   return (
-//     <div className="w-screen h-screen bg-gray-200 flex items-center justify-center">
-//       <div className="w-full max-w-md h-full md:h-[90%] bg-white shadow-lg flex flex-col">
-//         <div className="flex justify-between items-center p-4 bg-blue-500 text-white text-lg font-bold">
-//           <p>User : Muhammad Farooq</p>
-//           <p>Chat App</p>
-//         </div>
+//   // const sendMessage = async (e) => {
+//   //   e.preventDefault();
 
-//         <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-gray-100">
-//           {messages.map((msg, index) => (
-//             <div key={index} className="flex justify-start">
-//               <div className="bg-white px-4 py-2 rounded-lg shadow text-sm max-w-[75%]">
-//                 {msg.tittle}
+//   //   await supabase.from("messages").insert({
+//   //     // tittle: messageInput,
+//   //     // user_email: session?.user?.email,
+//   //     // user_id: session.user?.id,
+//   //     tittle: messageInput,
+//   //     avatar_url: session?.user?.user_metadata?.avatar_url,
+//   //     user_name: session?.user?.user_metadata?.full_name,
+//   //     user_id: session?.user.id,
+//   //   });
+
+//   //   setMessageInput("");
+//   // };
+
+//   const sendMessage = async (e) => {
+//     e.preventDefault();
+
+//     const { error } = await supabase.from("messages").insert({
+//       tittle: messageInput,
+//       avatar_url: session?.user?.user_metadata?.avatar_url,
+//       user_name:
+//         session?.user?.user_metadata?.full_name ||
+//         session?.user?.user_metadata?.name ||
+//         session?.user?.email?.split("@")[0],
+//       user_id: session?.user?.id,
+//     });
+
+//     if (error) console.log(error);
+
+//     setMessageInput("");
+//   };
+
+//   console.log("message", messages);
+//   // <button
+//   //         className="bg-blue-500 text-white px-4 py-2 rounded-md cursor-pointer"
+//   //         onClick={signInWithGoogle}
+//   //       >
+//   //         Sign in with Google
+//   //       </button>
+
+//   if (!session) {
+//     return (
+//       <div className="w-screen h-screen bg-gray-500 flex justify-center items-center">
+//         <div>Hello</div>
+//       </div>
+//     );
+//   }
+
+//   return (
+//     <div className="w-full h-screen flex items-center justify-center">
+//       <div className="border border-gray-500 min-w-6xl w-full min-h-[600px] rounded-lg">
+//         {/* header */}
+//         <div className="flex items-center justify-between mb-4 border-b border-gray-500 p-4">
+//           <div>
+//             <p>
+//               <span className="text-2xl font-extrabold">Sign as</span>{" "}
+//               {session.user.user_metadata.name || "Guest"}
+//             </p>
+//           </div>
+//           <div>
+//             <button
+//               className="text-black bg-blue-500 px-4 py-2 rounded-md"
+//               onClick={signOut}
+//             >
+//               Logout
+//             </button>
+//           </div>
+//         </div>
+//         {/* main chat  */}
+//         <div className="flex flex-col overflow-y-auto h-[500px] p-4 gap-3">
+//           {messages.map((m) => (
+//             <div
+//               key={m.id}
+//               className={`flex items-start gap-3 ${
+//                 m?.user_id !== session?.user?.id
+//                   ? "justify-end"
+//                   : "justify-start"
+//               }`}
+//             >
+//               {/* Avatar */}
+//               <div className="w-10 h-10 bg-blue-500 text-white rounded-full flex items-center justify-center font-bold">
+//                 {m.user_name ? m.user_name[0].toUpperCase() : "U"}
+//               </div>
+
+//               {/* Message content */}
+//               <div className="bg-gray-300 p-2 rounded-lg flex flex-col">
+//                 <div className="text-gray-800">{m.tittle}</div>
+//                 <div className="text-xs text-gray-500 mt-1">
+//                   {new Date(m.created_at).toLocaleTimeString([], {
+//                     hour: "2-digit",
+//                     minute: "2-digit",
+//                   })}
+//                 </div>
 //               </div>
 //             </div>
 //           ))}
+
+//           <div ref={messagesEndRef} className="h-10" />
 //         </div>
 
-//         <div className="p-3 border-t flex gap-2">
+//         {/* message input */}
+//         <form
+//           onSubmit={sendMessage}
+//           className="flex items-center gap-2 border-t border-gray-500 p-4"
+//         >
 //           <input
-//             value={message}
-//             onChange={(e) => setMessage(e.target.value)}
+//             value={messageInput}
+//             onChange={(e) => setMessageInput(e.target.value)}
 //             type="text"
-//             placeholder="Type a message..."
-//             className="flex-1 border rounded-full px-4 py-2 outline-none focus:ring-2 focus:ring-blue-400"
+//             placeholder="Message"
+//             className="w-full bg-gray-800  text-white p-2 rounded-md"
 //           />
 //           <button
-//             onClick={insertData}
-//             className="bg-blue-600 text-white px-5 rounded-full hover:bg-blue-700"
+//             type="submit"
+//             className="bg-blue-500 text-white px-4 py-2 rounded-md cursor-pointer"
 //           >
 //             Send
 //           </button>
-//         </div>
+//         </form>
 //       </div>
 //     </div>
 //   );
@@ -84,133 +190,15 @@
 
 // export default App;
 
-// ===============================================================================
+// ===========
 
-import React, { useEffect, useState } from "react";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  import.meta.env.VITE_SUPABASE_URL,
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
-);
+import React from "react";
+import Chat from "./component/Chat";
 
 function App() {
-  const [message, setMessage] = useState("");
-  const [messages, setMessages] = useState([]);
-  const [user, setUser] = useState(null);
-
-  // 🔐 Google Login
-  const loginWithGoogle = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-    });
-
-    if (error) console.log(error.message);
-  };
-
-  // 🚪 Logout
-  const logout = async () => {
-    await supabase.auth.signOut();
-  };
-
-  // 📩 Fetch messages
-  const getFetch = async () => {
-    const { data, error } = await supabase
-      .from("realtime")
-      .select("*")
-      .order("id", { ascending: true });
-
-    if (!error) setMessages(data);
-  };
-
-  // ➕ Insert message (logged-in user only)
-  const insertData = async () => {
-    if (!message.trim() || !user) return;
-
-    const { error } = await supabase.from("realtime").insert({
-      tittle: message,
-      user_id: user.id,
-      user_email: user.email,
-    });
-
-    if (!error) {
-      setMessage("");
-      getFetch();
-    }
-  };
-
-  // 🔄 Auth + initial fetch
-  useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(data?.user ?? null);
-    });
-
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setUser(session?.user ?? null);
-      }
-    );
-
-    getFetch();
-
-    return () => {
-      listener.subscription.unsubscribe();
-    };
-  }, []);
-
   return (
-    <div className="w-screen h-screen bg-gray-200 flex items-center justify-center">
-      <div className="w-full max-w-md h-full md:h-[90%] bg-white shadow-lg flex flex-col">
-        {/* Header */}
-        <div className="flex justify-between items-center p-4 bg-blue-500 text-white text-sm font-bold">
-          {user ? (
-            <>
-              <p>{user.email}</p>
-              <button onClick={logout} className="underline">
-                Logout
-              </button>
-            </>
-          ) : (
-            <button
-              onClick={loginWithGoogle}
-              className="bg-white text-blue-600 px-3 py-1 rounded"
-            >
-              Login with Google
-            </button>
-          )}
-        </div>
-
-        {/* Messages */}
-        <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-gray-100">
-          {messages.map((msg, index) => (
-            <div key={index} className="flex justify-start">
-              <div className="bg-white px-4 py-2 rounded-lg shadow text-sm max-w-[75%]">
-                <p>{msg.tittle}</p>
-                <small className="text-gray-400">{msg.user_email}</small>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Input */}
-        {user && (
-          <div className="p-3 border-t flex gap-2">
-            <input
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              type="text"
-              placeholder="Type a message..."
-              className="flex-1 border rounded-full px-4 py-2 outline-none"
-            />
-            <button
-              onClick={insertData}
-              className="bg-blue-600 text-white px-5 rounded-full"
-            >
-              Send
-            </button>
-          </div>
-        )}
-      </div>
+    <div>
+      <Chat />
     </div>
   );
 }
