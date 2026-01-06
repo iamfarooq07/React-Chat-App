@@ -1,6 +1,6 @@
 import { supabase } from "../config/supabase";
 import { useEffect, useState, useRef } from "react";
-import Login from "./Login";
+import Signup from "./Signup";
 
 function Chat() {
   const [session, setSession] = useState(null);
@@ -80,7 +80,7 @@ function Chat() {
   // console.log("message", messages);
 
   if (!session) {
-    return <Login signInWithGoogle={signInWithGoogle} />;
+    return <Signup signInWithGoogle={signInWithGoogle} />;
   }
 
   return (
